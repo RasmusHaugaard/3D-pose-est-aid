@@ -1,100 +1,153 @@
-import numpy as np
-from vispy import app
-from vispy import gloo
-from vispy.util import transforms
-import cv2
 import glob
+from datetime import datetime
+import numpy as np
+from PIL import Image
+from vispy import app, gloo
+from vispy.gloo import context
+from vispy.util import transforms
+from matplotlib import pyplot as plt
+from OpenGL import GL as gl
 
-app.use_app('pyqt5')
+app.use_app('pyglet')
 
-min_instances = 2
-max_instances = 10
-
-bg_img = cv2.imread('./dog.jpg', cv2.IMREAD_UNCHANGED)
-h, w, _ = bg_img.shape
-bg_tex = gloo.Texture2D(bg_img)
-
-c = app.Canvas(keys='interactive', size=(w, h))
-
-vertex = """
+_vert_std = """
 uniform mat4 u_mvp;
 attribute vec2 a_pos;
-attribute vec2 a_texcoord;
-varying vec2 v_texcoord;
+attribute vec2 a_tex_coord;
+varying vec2 v_tex_coord;
 
 void main (void)
 {
     gl_Position = u_mvp * vec4(a_pos, 0, 1);
-    v_texcoord = vec2(a_texcoord.x, 1.0 - a_texcoord.y);
+    v_tex_coord = vec2(a_tex_coord.x, a_tex_coord.y);
 }
 """
 
-fragment = """
+_frag_tex = """
 uniform sampler2D u_tex;
-varying vec2 v_texcoord;
-
-vec4 c;
+varying vec2 v_tex_coord;
 
 void main()
 {
-    c = texture2D(u_tex, v_texcoord);
-    gl_FragColor = vec4(c.b, c.g, c.r, c.a);
+    vec4 c = texture2D(u_tex, v_tex_coord);
+    if (c.a < 0.01)
+        // do not draw and change depth buffer, 
+        // when alpha is low
+        discard;
+    gl_FragColor = c;
 }
 """
 
-program = gloo.Program(vertex, fragment)
 
-program['a_pos'] = np.array([
-    [0, 0], [1, 0], [0, 1],
-    [0, 1], [1, 0], [1, 1],
-], dtype=np.float32)
-
-program['a_texcoord'] = np.array([
-    [0, 0], [1, 0], [0, 1],
-    [0, 1], [1, 0], [1, 1],
-], dtype=np.float32)
-
-cupImages = glob.glob('./cups/*.png')
-
-gloo.set_state(blend=True, blend_func=('src_alpha', 'one_minus_src_alpha'))
+def _unit_square():
+    return np.array([
+        [0, 0], [1, 0], [0, 1],
+        [0, 1], [1, 0], [1, 1],
+    ], dtype=np.float32)
 
 
-@c.connect
-def on_resize(event):
-    gloo.set_viewport(0, 0, *event.size)
+def _load_img(file):
+    # flip view vertically: Image- to OpenGL coordinates
+    img = Image.open(file).transpose(Image.FLIP_TOP_BOTTOM)
+    return np.array(img)
 
 
-@c.connect
-def on_draw(event):
-    projection = transforms.ortho(0, w, 0, h, -1, 1)
+def generate_image_definition(bg_path, instance_paths, border_ratio=0.1,
+                              min_scale=0.1, max_scale=1.0):
+    with Image.open(bg_path) as img:
+        w, h = img.size
+    border = border_ratio * min(w, h)
+    N = len(instance_paths)
+    x = np.random.uniform(border, w - border, N)
+    y = np.random.uniform(border, h - border, N)
+    scales = np.random.uniform(min_scale, max_scale, N)
+    rotations = np.random.uniform(0, 360, N)
 
-    mvp = np.eye(4, dtype=np.float32)
-    mvp = mvp.dot(transforms.scale((w, h, 1)))
-    mvp = mvp.dot(projection)
-    program['u_mvp'] = mvp
-    program['u_tex'] = bg_tex
-    program.draw('triangles')
+    instances = []
+    for i, instance_path in enumerate(instance_paths):
+        with Image.open(instance_path) as img:
+            iw, ih = img.size
+        bg_instance_ratio = min(w, h) / min(iw, ih)
+        instances.append({
+            'path': instance_path, 'size': (iw, ih),
+            'x': x[i], 'y': y[i],
+            's': scales[i] * bg_instance_ratio,
+            'r': rotations[i]
+        })
 
-    cup_count = np.random.randint(min_instances, max_instances + 1)
-    for _ in range(cup_count):
-        x = np.random.uniform(0, w)
-        y = np.random.uniform(0, h)
-        r = np.random.uniform(0, 360)
-        s = np.random.uniform(0.1, 1.5)
-        img = cv2.imread(np.random.choice(cupImages), cv2.IMREAD_UNCHANGED)
-        ih, iw, _ = img.shape
-        program['u_tex'] = gloo.Texture2D(img)
-
-        mvp = np.eye(4, dtype=np.float32)
-        mvp = mvp.dot(transforms.translate((-0.5, -0.5, 0)))
-        mvp = mvp.dot(transforms.scale((s * iw, s * ih, s)))
-        mvp = mvp.dot(transforms.rotate(r * 360, (0, 0, 1)))
-        mvp = mvp.dot(transforms.translate((x, y, 0)))
-        mvp = mvp.dot(projection)
-        program['u_mvp'] = mvp
-
-        program.draw('triangles')
+    return {
+        'background': {'path': bg_path, 'size': (w, h)},
+        'instances': instances
+    }
 
 
-c.show()
-app.run()
+def generate_overlay_rgb(img_def):
+    c = context.FakeCanvas()
+
+    img = _load_img(img_def['background']['path'])
+    h, w, _ = img.shape
+
+    render_fbo = gloo.FrameBuffer(
+        gloo.Texture2D(img),
+        gloo.RenderBuffer((h, w))
+    )
+
+    program = gloo.Program(_vert_std, _frag_tex)
+    program['a_pos'] = _unit_square()
+    program['a_tex_coord'] = _unit_square()
+    gloo.set_state(
+        blend=True, blend_func=('one', 'one_minus_src_alpha'),
+        depth_test=True, depth_func='always'
+    )
+
+    with render_fbo:
+        gloo.set_viewport(0, 0, w, h)
+        gloo.set_clear_depth(0)
+        gloo.clear(depth=True, color=False)
+
+        instances = img_def['instances']
+        # The unsigned byte depth buffer extraction sets a limit of 255 instances.
+        # Can be extracted as short if necessary.
+        assert(len(instances) <= 255)
+        for i, inst in enumerate(instances):
+            img = _load_img(inst['path'])
+            ih, iw, _ = img.shape
+            x, y, s, r = (inst[k] for k in ['x', 'y', 's', 'r'])
+
+            program['u_tex'] = gloo.Texture2D(img, interpolation='linear')
+            program['u_mvp'] = \
+                transforms.translate((-0.5, -0.5, 0)) @ \
+                transforms.scale((s * iw, s * ih, 1)) @ \
+                transforms.rotate(r, (0, 0, 1)) @ \
+                transforms.translate((x, y, -i-1)) @ \
+                transforms.ortho(0, w, 0, h, 0, 255)
+
+            program.draw()
+
+            rgb = render_fbo.read()
+            depth = gl.glReadPixels(0, 0, w, h, gl.GL_DEPTH_COMPONENT, gl.GL_UNSIGNED_BYTE)
+            if not isinstance(depth, np.ndarray):
+                depth = np.frombuffer(depth, np.uint8)
+            depth = np.flip(depth.reshape(h, w), axis=0)
+
+    return rgb, depth
+
+
+if __name__ == '__main__':
+    instancefiles = glob.glob('./instances/**/*.png')
+
+    img_def = generate_image_definition(
+        bg_path='./bg.jpg',
+        instance_paths=np.random.choice(instancefiles, 10),
+        min_scale=0.4, max_scale=1.2
+    )
+
+    start = datetime.now()
+    img, depth = generate_overlay_rgb(img_def)
+    print('Render took:', datetime.now() - start)
+
+    plt.subplot(1, 2, 1)
+    plt.imshow(img)
+    plt.subplot(1, 2, 2)
+    plt.imshow(depth)
+    plt.show()
