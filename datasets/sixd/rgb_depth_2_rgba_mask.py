@@ -6,18 +6,56 @@ from progressbar import ProgressBar
 
 
 def gen_mask(path):
-    files = path.glob('depth/*.png')
+    print('Generating masks...')
+
+    depth_dir = path / 'depth'
+    if not depth_dir.is_dir():
+        print('No depth dir. Exiting.')
+        return False
+
+    files = depth_dir.glob('*.png')
+    if not files:
+        print('Found no png files at', depth_dir, '. Exiting.')
+        return False
+
+    mask_dir = path / 'mask'
+    if not mask_dir.is_dir():
+        print('No mask dir. Creating dir.')
+        mask_dir.mkdir()
+
     for file in ProgressBar()(list(map(Path, files))):
         depth = cv2.imread(str(file), cv2.IMREAD_ANYDEPTH)
         mask = np.greater(depth, 0) * 255
-        cv2.imwrite(str(path / 'mask' / file.name), mask)
+        cv2.imwrite(str(mask_dir / file.name), mask)
+
+    return True
 
 
 def gen_rgba(path):
-    files = path.glob('rgb/*.png')
+    print('Generating rgba images...')
+
+    rgb_dir = path / 'rgb'
+    if not rgb_dir.is_dir():
+        print('No rgb dir. Exiting.')
+        return False
+
+    files = rgb_dir.glob('*.png')
+    if not files:
+        print('Found no png files at', rgb_dir, '. Exiting')
+        return False
+
+    mask_dir = path / 'mask'
+    if not mask_dir.is_dir():
+        gen_mask(path)
+
+    rgba_dir = path / 'rgba'
+    if not rgba_dir.is_dir():
+        print('No rgba dir. Creating dir.')
+        rgba_dir.mkdir()
+
     for file in ProgressBar()(list(map(Path, files))):
         rgb = cv2.imread(str(file))
-        mask = cv2.imread(str(path / 'mask' / file.name), cv2.IMREAD_GRAYSCALE)
+        mask = cv2.imread(str(mask_dir / file.name), cv2.IMREAD_GRAYSCALE)
         # erode and blur mask to avoid black and jagged edges
         mask = cv2.erode(
             mask,
@@ -29,7 +67,7 @@ def gen_rgba(path):
         rgb = (rgb // 255).astype(np.uint8)
         # merge and save
         masked_img = cv2.merge((*cv2.split(rgb), mask))
-        cv2.imwrite(str(path / 'rgba' / file.name), masked_img)
+        cv2.imwrite(str(rgba_dir / file.name), masked_img)
 
 
 def main():
