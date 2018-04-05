@@ -52,8 +52,8 @@ def _load_img(file):
     return np.array(img)
 
 
-def generate_image_definition(bg_path, instance_paths, border_ratio=0.1,
-                              min_scale=0.1, max_scale=1.0):
+def generate_image_def(bg_path, instance_paths, border_ratio=0.1,
+                       min_scale=0.4, max_scale=1.2):
     with Image.open(bg_path) as img:
         w, h = img.size
     border = border_ratio * min(w, h)
@@ -139,10 +139,9 @@ def generate_image(img_def):
 if __name__ == '__main__':
     instancefiles = glob.glob('./instances/**/*.png')
 
-    img_def = generate_image_definition(
+    img_def = generate_image_def(
         bg_path='./bg.jpg',
         instance_paths=np.random.choice(instancefiles, 10),
-        min_scale=0.4, max_scale=1.2
     )
 
     start = datetime.now()
