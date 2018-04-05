@@ -81,7 +81,7 @@ def generate_image_definition(bg_path, instance_paths, border_ratio=0.1,
     }
 
 
-def generate_overlay_rgb(img_def):
+def generate_image(img_def):
     c = context.FakeCanvas()
 
     img = _load_img(img_def['background']['path'])
@@ -124,13 +124,16 @@ def generate_overlay_rgb(img_def):
 
             program.draw()
 
-            rgb = render_fbo.read()
-            depth = gl.glReadPixels(0, 0, w, h, gl.GL_DEPTH_COMPONENT, gl.GL_UNSIGNED_BYTE)
-            if not isinstance(depth, np.ndarray):
-                depth = np.frombuffer(depth, np.uint8)
-            depth = np.flip(depth.reshape(h, w), axis=0)
+        rgb = render_fbo.read(alpha=False)
+        depth = gl.glReadPixels(0, 0, w, h, gl.GL_DEPTH_COMPONENT, gl.GL_UNSIGNED_BYTE)
+        if not isinstance(depth, np.ndarray):
+            depth = np.frombuffer(depth, np.uint8)
+        depth = np.flip(depth.reshape(h, w), axis=0)
+        masks = np.empty((h, w, len(instances)), np.bool)
+        for i in range(len(instances)):
+            masks[:, :, i] = depth == i + 1
 
-    return rgb, depth
+    return rgb, depth, masks
 
 
 if __name__ == '__main__':
@@ -143,11 +146,21 @@ if __name__ == '__main__':
     )
 
     start = datetime.now()
-    img, depth = generate_overlay_rgb(img_def)
+    img, depth, masks = generate_image(img_def)
     print('Render took:', datetime.now() - start)
 
-    plt.subplot(1, 2, 1)
+    rows, cols = 4, 2
+    plt.subplot(rows, cols, 1)
     plt.imshow(img)
-    plt.subplot(1, 2, 2)
+    plt.title('rgb')
+    plt.axis('off')
+    plt.subplot(rows, cols, 2)
     plt.imshow(depth)
+    plt.title('depth')
+    plt.axis('off')
+    for i in range(min((rows - 1) * cols, depth.max())):
+        plt.subplot(rows, cols, cols + i + 1)
+        plt.imshow(masks[:, :, i])
+        plt.title('mask ' + str(i))
+        plt.axis('off')
     plt.show()
