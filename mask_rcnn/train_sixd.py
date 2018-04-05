@@ -2,18 +2,21 @@ import numpy as np
 import os
 
 from Sixd import SixdConfig, SixdDataset
-from Mask_RCNN import visualize, utils
+from Mask_RCNN import utils
 from Mask_RCNN import model as modellib
 
-dataset_coco_dir = '../datasets/coco'
-dataset_sixd_dir = '../datasets/sixd/doumanoglou/train'
+file_dir = os.path.dirname(os.path.abspath(__file__))
+project_dir = os.path.dirname(file_dir)
+
+dataset_coco_dir = project_dir + '/datasets/coco'
+dataset_sixd_dir = project_dir + '/datasets/sixd/doumanoglou/train'
 
 COCO_MODEL_PATH = 'Mask_RCNN/mask_rcnn_coco.h5'
 if not os.path.exists(COCO_MODEL_PATH):
     utils.download_trained_weights(COCO_MODEL_PATH)
 
 dataset_train = SixdDataset()
-dataset_train.load_sixd(500, dataset_coco_dir, 'test', dataset_sixd_dir)
+dataset_train.load_sixd(500, dataset_coco_dir, 'train', dataset_sixd_dir)
 dataset_train.prepare()
 
 dataset_val = SixdDataset()

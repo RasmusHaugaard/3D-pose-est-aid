@@ -3,7 +3,7 @@ from pathlib import Path
 
 from Mask_RCNN import utils
 from Mask_RCNN.config import Config
-import overlay_instances_2d as overlay
+from overlay_instances_2d import overlay_instances_2d as overlay
 
 DEFAULT_DATASET_YEAR = 2017
 
@@ -47,7 +47,8 @@ class SixdDataset(utils.Dataset):
         self.add_class("sixd", 2, "carton")
 
         image_dir = "{}/{}{}".format(coco_dataset_dir, coco_subset, coco_year)
-        image_paths = np.random.choice(list(Path(image_dir).glob('*.jpg')), count)
+        all_images = list(Path(image_dir).glob('*.jpg'))
+        image_paths = np.random.choice(all_images, count)
 
         cup_files = list((Path(sixd_train_dir) / '01' / 'rgba').glob('*.png'))
         carton_files = list((Path(sixd_train_dir) / '02' / 'rgba').glob('*.png'))
