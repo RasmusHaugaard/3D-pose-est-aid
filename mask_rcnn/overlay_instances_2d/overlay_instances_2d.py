@@ -5,7 +5,6 @@ from PIL import Image
 from vispy import app, gloo
 from vispy.gloo import context
 from vispy.util import transforms
-from matplotlib import pyplot as plt
 from OpenGL import GL as gl
 
 app.use_app('pyglet')
@@ -147,6 +146,8 @@ if __name__ == '__main__':
     start = datetime.now()
     img, depth, masks = generate_image(img_def)
     print('Render took:', datetime.now() - start)
+
+    from matplotlib import pyplot as plt
 
     rows, cols = 4, 2
     plt.subplot(rows, cols, 1)
