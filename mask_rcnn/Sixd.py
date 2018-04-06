@@ -28,7 +28,7 @@ class SixdConfig(Config):
     TRAIN_ROIS_PER_IMAGE = 64
 
     # Use a small epoch since the data is simple
-    STEPS_PER_EPOCH = 500
+    STEPS_PER_EPOCH = 300
 
     # use small validation steps since the epoch is small
     VALIDATION_STEPS = 25

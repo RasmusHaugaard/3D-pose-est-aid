@@ -19,11 +19,11 @@ if not os.path.exists(COCO_MODEL_PATH):
     utils.download_trained_weights(COCO_MODEL_PATH)
 
 dataset_train = SixdDataset()
-dataset_train.load_sixd(5, dataset_coco_dir, 'train', dataset_sixd_dir)
+dataset_train.load_sixd(3000, dataset_coco_dir, 'train', dataset_sixd_dir)
 dataset_train.prepare()
 
 dataset_val = SixdDataset()
-dataset_val.load_sixd(50, dataset_coco_dir, 'val', dataset_sixd_dir)
+dataset_val.load_sixd(250, dataset_coco_dir, 'val', dataset_sixd_dir)
 dataset_val.prepare()
 
 config = SixdConfig()
