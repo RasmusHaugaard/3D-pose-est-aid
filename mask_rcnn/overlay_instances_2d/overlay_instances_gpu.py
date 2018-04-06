@@ -149,7 +149,7 @@ if __name__ == '__main__':
 
     from matplotlib import pyplot as plt
 
-    rows, cols = 4, 2
+    rows, cols = 3, 3
     plt.subplot(rows, cols, 1)
     plt.imshow(img)
     plt.title('rgb')

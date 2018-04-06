@@ -1,9 +1,8 @@
 import numpy as np
 from pathlib import Path
-
 from Mask_RCNN import utils
 from Mask_RCNN.config import Config
-from overlay_instances_2d import overlay_instances_2d as overlay
+from overlay_instances_2d import overlay_instances_cpu as overlay
 
 DEFAULT_DATASET_YEAR = 2017
 
@@ -18,21 +17,21 @@ class SixdConfig(Config):
 
     # Use small images for faster training. Set the limits of the small side
     # the large side, and that determines the image shape.
-    # IMAGE_MIN_DIM = 128
-    # IMAGE_MAX_DIM = 128
+    IMAGE_MIN_DIM = 512
+    IMAGE_MAX_DIM = 512
 
     # Use smaller anchors because our image and objects are small
-    # RPN_ANCHOR_SCALES = (8, 16, 32, 64, 128)  # anchor side in pixels
+    RPN_ANCHOR_SCALES = (16, 32, 64, 128, 256)  # anchor side in pixels
 
     # Reduce training ROIs per image because the images are small and have
     # few objects. Aim to allow ROI sampling to pick 33% positive ROIs.
-    # TRAIN_ROIS_PER_IMAGE = 32
+    TRAIN_ROIS_PER_IMAGE = 64
 
     # Use a small epoch since the data is simple
-    STEPS_PER_EPOCH = 100
+    STEPS_PER_EPOCH = 500
 
     # use small validation steps since the epoch is small
-    VALIDATION_STEPS = 5
+    VALIDATION_STEPS = 25
 
 
 class SixdDataset(utils.Dataset):
@@ -62,24 +61,24 @@ class SixdDataset(utils.Dataset):
             carton_paths = [(2, path) for path in np.random.choice(carton_files, carton_count)]
             instance_paths = cup_paths + carton_paths
             np.random.shuffle(instance_paths)
-            class_ids = np.array([c for c, _ in instance_paths], dtype=np.int32)
-            instance_paths = [p for _, p in instance_paths]
+            class_ids = np.array([c for c, _ in instance_paths])
+            instance_paths = [str(p) for _, p in instance_paths]
 
             bg_path = str(image_path)
-            image_def = overlay.generate_image_def(bg_path, instance_paths)
+            image_def, class_ids = overlay.generate_image_def(bg_path, instance_paths, class_ids)
 
             self.add_image(
                 "sixd", image_id=i,
                 path=bg_path,
                 image_def=image_def,
-                class_ids=class_ids,
+                class_ids=np.array(class_ids).astype(np.int32),
             )
 
     def load_image(self, image_id):
         # Load image
         info = self.image_info[image_id]
         image_def = info['image_def']
-        image, _, _ = overlay.generate_image(image_def)
+        image = overlay.generate_image(image_def)
         return image
 
     def image_reference(self, image_id):
@@ -95,5 +94,5 @@ class SixdDataset(utils.Dataset):
         """
         info = self.image_info[image_id]
         image_def, class_ids = info['image_def'], info['class_ids']
-        _, _, masks = overlay.generate_image(image_def)
+        masks = overlay.generate_masks(image_def)
         return masks, class_ids
