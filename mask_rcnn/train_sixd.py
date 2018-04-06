@@ -6,7 +6,6 @@ from Mask_RCNN import utils
 from Mask_RCNN import model as modellib
 from Sixd import SixdConfig, SixdDataset
 
-from matplotlib import pyplot as plt
 
 file_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(file_dir)
