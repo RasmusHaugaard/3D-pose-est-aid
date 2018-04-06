@@ -23,6 +23,7 @@ def generate_image_def(bg_path, instance_paths, class_ids, border_ratio=0.1,
         bg_instance_ratio = min(w, h) / min(iw, ih)
         instances.append({
             'path': instance_path, 'size': (iw, ih),
+            'class': class_ids[i],
             'x': x[i], 'y': y[i],
             's': scales[i] * bg_instance_ratio,
             'r': rotations[i]
@@ -36,14 +37,12 @@ def generate_image_def(bg_path, instance_paths, class_ids, border_ratio=0.1,
     masks = generate_masks(image_def)
 
     visible_instances = []
-    visible_class_ids = []
     for i, area in enumerate(masks.sum(axis=(0, 1))):
-        if area > 20 * 20:
+        if area > 20 ** 2:
             visible_instances.append(instances[i])
-            visible_class_ids.append(class_ids[i])
-
     image_def['instances'] = visible_instances
-    return image_def, visible_class_ids
+
+    return image_def
 
 
 def get_transform_from_inst(inst):
@@ -91,6 +90,7 @@ def main():
     img_def = generate_image_def(
         bg_path='./bg.jpg',
         instance_paths=np.random.choice(instancefiles, 10),
+        class_ids=np.arange(10),
     )
     print('Def gen took:', datetime.now() - start)
 
@@ -111,7 +111,6 @@ def main():
     plt.axis('off')
     plt.subplot(rows, cols, 2)
     zeros = np.zeros((*masks.shape[:2], 1), np.bool)
-    print(zeros.shape, masks.shape)
     depth = np.argmax(np.concatenate((zeros, masks), axis=2), axis=2)
     plt.imshow(depth)
     plt.axis('off')

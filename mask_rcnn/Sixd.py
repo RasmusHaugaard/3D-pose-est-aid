@@ -1,4 +1,7 @@
 import numpy as np
+from progressbar import ProgressBar
+import yaml
+
 from pathlib import Path
 from Mask_RCNN import utils
 from Mask_RCNN.config import Config
@@ -45,33 +48,48 @@ class SixdDataset(utils.Dataset):
         self.add_class("sixd", 1, "cup")
         self.add_class("sixd", 2, "carton")
 
-        image_dir = "{}/{}{}".format(coco_dataset_dir, coco_subset, coco_year)
-        all_images = list(Path(image_dir).glob('*.jpg'))
-        image_paths = np.random.choice(all_images, count)
+        def_path = Path("./image_def_{}{}_{}.yaml".format(coco_subset, coco_year, count))
+        if def_path.is_file():
+            print('Using cached definition file:', def_path)
+            with def_path.open() as stream:
+                image_defs = yaml.load(stream)
+        else:
+            print('Creating and caching definition file:', def_path)
 
-        cup_files = list((Path(sixd_train_dir) / '01' / 'rgba').glob('*.png'))
-        carton_files = list((Path(sixd_train_dir) / '02' / 'rgba').glob('*.png'))
+            image_dir = "{}/{}{}".format(coco_dataset_dir, coco_subset, coco_year)
+            all_images = list(Path(image_dir).glob('*.jpg'))
+            image_paths = np.random.choice(all_images, count)
 
-        for i, image_path in enumerate(image_paths):
-            instance_count = np.random.randint(5, 15)
-            cup_count = round(instance_count * np.random.rand())
-            carton_count = instance_count - cup_count
+            cup_files = list((Path(sixd_train_dir) / '01' / 'rgba').glob('*.png'))
+            carton_files = list((Path(sixd_train_dir) / '02' / 'rgba').glob('*.png'))
 
-            cup_paths = [(1, path) for path in np.random.choice(cup_files, cup_count)]
-            carton_paths = [(2, path) for path in np.random.choice(carton_files, carton_count)]
-            instance_paths = cup_paths + carton_paths
-            np.random.shuffle(instance_paths)
-            class_ids = np.array([c for c, _ in instance_paths])
-            instance_paths = [str(p) for _, p in instance_paths]
+            image_defs = []
+            for i, image_path in enumerate(ProgressBar()(image_paths)):
+                instance_count = np.random.randint(5, 15)
+                cup_count = round(instance_count * np.random.rand())
+                carton_count = instance_count - cup_count
 
-            bg_path = str(image_path)
-            image_def, class_ids = overlay.generate_image_def(bg_path, instance_paths, class_ids)
+                cup_paths = [(1, path) for path in np.random.choice(cup_files, cup_count)]
+                carton_paths = [(2, path) for path in np.random.choice(carton_files, carton_count)]
+                instance_paths = cup_paths + carton_paths
+                np.random.shuffle(instance_paths)
+                class_ids = np.array([c for c, _ in instance_paths])
+                instance_paths = [str(p) for _, p in instance_paths]
 
+                bg_path = str(image_path)
+                image_def = overlay.generate_image_def(bg_path, instance_paths, class_ids)
+                image_defs.append(image_def)
+
+            with def_path.open(mode='w', encoding='utf8') as stream:
+                yaml.dump(image_defs, stream)
+
+        for i, image_def in enumerate(image_defs):
+            class_ids = [inst['class'] for inst in image_def['instances']]
             self.add_image(
                 "sixd", image_id=i,
-                path=bg_path,
+                path=image_def['background']['path'],
                 image_def=image_def,
-                class_ids=np.array(class_ids).astype(np.int32),
+                class_ids=np.array(class_ids, np.int32),
             )
 
     def load_image(self, image_id):
