@@ -1,4 +1,4 @@
 Mask_RCNN
 logs
 APs
-evaluation_sixd.ipynb
+image_def_*.yaml
