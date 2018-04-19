@@ -8,10 +8,16 @@ import math
 import sys
 import argparse
 
-
 X, Y, Z = 0, 1, 2
 objs = bpy.data.objects
 scn = bpy.data.scenes['RenderScene']
+
+# bug 'fix' - blender node tree needs to be reactivated on load?
+# this is done by (re)linking two nodes (they are already linked)
+mask_node = scn.node_tree.nodes['Math.003']
+fo_node = scn.node_tree.nodes['File Output']
+node_group = mask_node.id_data
+node_group.links.new(mask_node.outputs[0], fo_node.inputs[2])
 
 
 def rand_euler():
@@ -32,7 +38,7 @@ def set_rand_lights():
 
     for i in range(len(light_objs)):
         lamp = bpy.data.lamps[str(i)]
-        lamp.size = uniform(1, 7)    
+        lamp.size = uniform(1, 7)
 
 
 def set_rand_camera():
@@ -45,20 +51,20 @@ def set_rand_camera():
 
 def set_rand_scene():
     instances_parent = objs['Instances']
-        
+
     for obj in instances_parent.children:
         objs.remove(obj, True)
-    
+
     min_objs, max_objs = 20, 40
     total_objs_count = randint(min_objs, max_objs)
     positives_count = randint(total_objs_count // 3, total_objs_count)
     negatives_count = total_objs_count - positives_count
     cup_count = randint(0, positives_count)
     carton_count = positives_count - cup_count
-    
+
     cup, carton = objs['Cup'], objs['Carton']
     negatives_stock = objs['NegativesStock'].children
-    
+
     instances = []
     for _ in range(negatives_count):
         instances.append(choice(negatives_stock).copy())
@@ -71,18 +77,18 @@ def set_rand_scene():
         obj.pass_index = 80 + i
         instances.append(obj)
     shuffle(instances)
-    
+
     scn.frame_set(0)
-    box_size = math.ceil(len(instances) ** (1./3.))
+    box_size = math.ceil(len(instances) ** (1. / 3.))
     for i, obj in enumerate(instances):
         z = i // (box_size * box_size)
         i -= z * box_size * box_size
         y = i // box_size
         x = i - y * box_size
-        
+
         for i, l in ((0, x), (1, y), (2, z)):
-            obj.location[i] = (l - (box_size-1) / 2) * 3
-            
+            obj.location[i] = (l - (box_size - 1) / 2) * 3
+
         obj.rotation_euler = rand_euler()
         scn.objects.link(obj)
         obj.parent = instances_parent
@@ -90,7 +96,7 @@ def set_rand_scene():
 
     for i in range(1, 250):
         scn.frame_set(i)
-    
+
 
 def main():
     argv = sys.argv
@@ -104,7 +110,7 @@ def main():
 
     total_img = scene_count * img_per_scene
     for scene_i in range(scene_count):
-        print('Setting random scene', scene_i+1, 'of', scene_count, '..')
+        print('Setting random scene', scene_i + 1, 'of', scene_count, '..')
         set_rand_scene()
         for img_i in range(img_per_scene):
             set_rand_lights()
