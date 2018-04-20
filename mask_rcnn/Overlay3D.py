@@ -27,8 +27,8 @@ class Overlay3DConfig(Config):
 
 class Overlay3DDataset(utils.Dataset):
     def load_overlay3d(self, overlay3dOutDir):
-        self.add_class("sixd", 1, "cup")
-        self.add_class("sixd", 2, "carton")
+        self.add_class("overlay3d", 1, "cup")
+        self.add_class("overlay3d", 2, "carton")
 
         out_dir = Path(overlay3dOutDir)
         assert out_dir.exists()
@@ -36,7 +36,6 @@ class Overlay3DDataset(utils.Dataset):
         rgb_paths = out_dir.glob('rgb/*.png')
         for p in rgb_paths:
             id = int(p.name[:-4])
-            print(p, id)
             self.add_image("overlay3d", image_id=id, path=str(p))
 
     def image_reference(self, image_id):
@@ -57,7 +56,6 @@ class Overlay3DDataset(utils.Dataset):
         info = self.image_info[image_id]
         p = Path(info['path']).parent.parent / 'mask' / (str(info['id']) + '.png')
         p = str(p)
-        print('mask', p)
         mask = cv2.imread(p, cv2.IMREAD_UNCHANGED)
 
         masks = []
@@ -73,7 +71,7 @@ class Overlay3DDataset(utils.Dataset):
 
         masks = np.stack(masks, axis=-1)
 
-        return masks, class_ids
+        return masks, np.array(class_ids, dtype=np.int)
 
 
 def main():
