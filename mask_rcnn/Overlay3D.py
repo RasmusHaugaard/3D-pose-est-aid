@@ -13,7 +13,8 @@ class Overlay3DConfig(Config):
 
     NUM_CLASSES = 1 + 2  # background + 2 classes
 
-    IMAGE_RESIZE_MODE = "none"  # 640x480
+    IMAGE_MIN_DIM = 480
+    IMAGE_MAX_DIM = 640
 
     # Use smaller anchors because our image and objects are small
     RPN_ANCHOR_SCALES = (16, 32, 64, 128, 256)  # anchor side in pixels
