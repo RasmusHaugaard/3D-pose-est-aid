@@ -36,7 +36,7 @@ class Overlay3DDataset(utils.Dataset):
 
         rgb_paths = out_dir.glob('rgb/*.png')
         for p in rgb_paths:
-            id = int(p.name[:-4])
+            id = p.name[:-4]
             self.add_image("overlay3d", image_id=id, path=str(p))
 
     def image_reference(self, image_id):
@@ -55,7 +55,7 @@ class Overlay3DDataset(utils.Dataset):
 
     def load_mask(self, image_id):
         info = self.image_info[image_id]
-        p = Path(info['path']).parent.parent / 'mask' / (str(info['id']) + '.png')
+        p = Path(info['path']).parent.parent / 'mask' / (info['id'] + '.png')
         p = str(p)
         mask = cv2.imread(p, cv2.IMREAD_UNCHANGED)
 
