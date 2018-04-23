@@ -33,7 +33,7 @@ class Overlay3DDataset(utils.Dataset):
         out_dir = Path(overlay3dOutDir)
         assert out_dir.exists()
 
-        rgb_paths = out_dir.glob('rgb/*.png')
+        rgb_paths = out_dir.glob('**/rgb/*.png')
         for p in rgb_paths:
             id = p.name[:-4]
             self.add_image("overlay3d", image_id=id, path=str(p))
