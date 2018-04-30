@@ -27,14 +27,14 @@ class Overlay3DConfig(Config):
 
 
 class Overlay3DDataset(utils.Dataset):
-    def load_overlay3d(self, overlay3dOutDir):
+    def load_overlay3d(self, dataset_dir):
         self.add_class("overlay3d", 1, "cup")
         self.add_class("overlay3d", 2, "carton")
 
-        out_dir = Path(overlay3dOutDir)
-        assert out_dir.exists()
+        dataset_dir = Path(dataset_dir)
+        assert dataset_dir.exists()
 
-        rgb_paths = out_dir.glob('**/rgb/*.png')
+        rgb_paths = sorted(list(dataset_dir.glob('**/rgb/*.png')))
         for p in rgb_paths:
             id = p.name[:-4]
             self.add_image("overlay3d", image_id=id, path=str(p))
@@ -79,10 +79,14 @@ def main():
     from matplotlib import pyplot as plt
 
     dataset = Overlay3DDataset()
-    dataset.load_overlay3d('../datasets/sixd/overlay_3D/out')
+    dataset.load_overlay3d('../datasets/sixd/doumanoglou/test')
 
     img = dataset.load_image(0)
     mask, _ = dataset.load_mask(0)
+    mask = np.concatenate((
+        np.zeros((*mask.shape[0:2], 1)),
+        mask
+    ), axis=2)
     mask = np.argmax(mask, axis=2)
 
     plt.subplot(1, 2, 1)
