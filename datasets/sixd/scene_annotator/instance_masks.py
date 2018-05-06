@@ -140,9 +140,6 @@ def main():
     models_dir = root / args.models_dir
     assert models_dir.is_dir()
 
-    def _handle_scene(scene_dir):
-        handle_scene(scene_dir, models_dir, args.obj_group_size)
-
     with mp.Pool(mp.cpu_count()) as p:
         p.map(
             functools.partial(handle_scene, models_dir=models_dir, obj_group_size=args.obj_group_size),
