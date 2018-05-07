@@ -1,2 +1,4 @@
 doumanoglou
-hinterstoisser
+hinterstoisser/models
+hinterstoisser/test
+hinterstoisser/*.yml
