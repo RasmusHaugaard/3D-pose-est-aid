@@ -1,8 +1,9 @@
 import numpy as np
 from pathlib import Path
-from Mask_RCNN import utils
-from Mask_RCNN.config import Config
+from mrcnn.config import Config
+from mrcnn import utils
 import cv2
+import skimage.io
 
 
 class Overlay3DConfig(Config):
@@ -52,6 +53,12 @@ class Overlay3DDataset(utils.Dataset):
         img = cv2.imread(info['path'])
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         return img
+        #info = self.image_info[image_id]
+        #depth = skimage.io.imread(str(
+        #    Path(info['path']).parent.parent / 'depth' / '{:04}.png'.format(info['id'])
+        #))
+        #depth = (depth.astype(np.float32) - 950) / 460
+        #return depth.reshape((*depth.shape, 1))
 
     def load_mask(self, image_id):
         info = self.image_info[image_id]

@@ -2,3 +2,9 @@ Mask_RCNN
 logs
 APs
 image_def_*.yaml
+synthetic_advanced_results
+synthetic_simple_results
+mask_results
+rgb_coco_results
+depth_only_results
+overlay_instances_2d/examples

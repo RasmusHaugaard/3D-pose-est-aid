@@ -3,8 +3,8 @@ from progressbar import ProgressBar
 import yaml
 
 from pathlib import Path
-from Mask_RCNN import utils
-from Mask_RCNN.config import Config
+from Mask_RCNN.mrcnn import utils
+from Mask_RCNN.mrcnn.config import Config
 from overlay_instances_2d import overlay_instances_cpu as overlay
 
 DEFAULT_DATASET_YEAR = 2017

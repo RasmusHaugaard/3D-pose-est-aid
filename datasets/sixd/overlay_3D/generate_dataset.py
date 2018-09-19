@@ -7,8 +7,8 @@ import cv2
 
 from rgbd_overlay import rgbd_overlay
 
-scene_count = 300
-img_per_scene = 10
+scene_count = 40
+img_per_scene = 100
 total_img = scene_count * img_per_scene
 
 

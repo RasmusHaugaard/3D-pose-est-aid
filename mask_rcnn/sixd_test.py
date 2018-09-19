@@ -1,6 +1,6 @@
 import numpy as np
-from Mask_RCNN import utils
-from Mask_RCNN.config import Config
+from Mask_RCNN.mrcnn import utils
+from Mask_RCNN.mrcnn.config import Config
 import os
 import skimage.color
 import skimage.io

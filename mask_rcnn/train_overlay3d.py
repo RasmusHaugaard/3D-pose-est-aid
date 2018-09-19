@@ -17,11 +17,11 @@ if not os.path.exists(COCO_MODEL_PATH):
     utils.download_trained_weights(COCO_MODEL_PATH)
 
 dataset_train = Overlay3DDataset()
-dataset_train.load_overlay3d(dataset_dir + '/train3500')
+dataset_train.load_overlay3d(dataset_dir + '/train')
 dataset_train.prepare()
 
 dataset_val = Overlay3DDataset()
-dataset_val.load_overlay3d(dataset_dir + '/val500')
+dataset_val.load_overlay3d(dataset_dir + '/val')
 dataset_val.prepare()
 
 config = Overlay3DConfig()
